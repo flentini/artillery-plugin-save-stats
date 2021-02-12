@@ -7,7 +7,7 @@ class SaveStats {
 
     this.parseConf(script);
 
-    this.ws = createWriteStream(this.destination);
+    this.ws = createWriteStream(this.destination, this.wsOptions);
 
     this.ee.on("stats", (stats) => this.writeStats(stats));
   }
@@ -21,6 +21,12 @@ class SaveStats {
 
     if (!conf.destination) {
       throw new Error(`plugins.save-stats.destination is required`);
+    }
+
+    if (conf.append) {
+      this.wsOptions = {
+        flags: "a",
+      };
     }
 
     this.destination = conf.destination;

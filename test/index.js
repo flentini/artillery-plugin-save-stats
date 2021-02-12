@@ -73,3 +73,36 @@ test("artillery 'stats' event", (t) => {
     t.end();
   });
 });
+
+test("plugin options", (t) => {
+  const destination = "./test/output";
+  const events = new EventEmitter();
+  const script = {
+    plugins: {
+      "save-stats": {
+        destination,
+        append: true,
+      },
+    },
+    scenarios: [],
+  };
+  const statsData = {
+    timestamp: "2021-02-12T17:17:35.906Z",
+  };
+
+  fs.writeFileSync(destination, JSON.stringify(destination) + "\n");
+
+  new SaveStats(script, events);
+
+  events.emit("stats", {
+    report: () => statsData,
+  });
+
+  fs.readFile(destination, (_, data) => {
+    cleanUp(destination);
+
+    const lines = data.toString().trim().split("\n");
+    t.equal(lines.length, 2, "can append lines to an existing file");
+    t.end();
+  });
+});
