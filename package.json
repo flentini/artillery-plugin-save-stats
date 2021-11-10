@@ -1,10 +1,14 @@
 {
   "name": "artillery-plugin-save-stats",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "save artillery stats to file as a newline delimited JSON",
   "main": "index.js",
   "scripts": {
     "test": "tape test"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/flentini/artillery-plugin-save-stats"
   },
   "keywords": [
     "artillery"
