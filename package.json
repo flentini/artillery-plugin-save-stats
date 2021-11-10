@@ -11,5 +11,10 @@
   ],
   "author": "Francesco Lentini",
   "license": "MPL-2.0",
-  "tape": "^5.1.1"
+  "dependencies": {
+    "debug": "^4.3.2"
+  },
+  "devDependencies": {
+    "tape": "^5.3.1"
+  }
 }

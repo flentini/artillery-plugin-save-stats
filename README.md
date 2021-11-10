@@ -19,5 +19,5 @@ config:
   plugins:
     save-stats:
       destination: 'path/to/file'
-      append: true # append to an existing file
+      append: true # append to an existing file. Optional, default: false
 ```

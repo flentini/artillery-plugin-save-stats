@@ -4,26 +4,35 @@ const EventEmitter = require("events").EventEmitter;
 
 const SaveStats = require("../index");
 
-const cleanUp = (file) => fs.unlinkSync(file);
+const cleanUp = (file) => {
+  try {
+    setTimeout(() => fs.unlinkSync(file));
+  } catch {}
+};
+
+const getDestination = () =>
+  `./test/output_${Math.floor(Math.random() * 10000)}`;
 
 test("basic checks", (t) => {
-  const destination = "./output";
+  const destination = getDestination();
   const events = new EventEmitter();
   const script = {
-    plugins: {
-      "save-stats": {
-        destination,
+    config: {
+      plugins: {
+        "save-stats": {
+          destination,
+        },
       },
     },
     scenarios: [],
   };
 
-  t.assert(new SaveStats(script, events), "can create an instance");
+  t.assert(new SaveStats.Plugin(script, events), "can create an instance");
 
-  delete script.plugins["save-stats"].destination;
+  delete script.config.plugins["save-stats"].destination;
 
   t.throws(
-    () => new SaveStats(script, events),
+    () => new SaveStats.Plugin(script, events),
     "throws if plugins.save-stats.destination is missing"
   );
 
@@ -32,18 +41,20 @@ test("basic checks", (t) => {
 });
 
 test("artillery 'stats' event", (t) => {
-  const destination = "./test/output";
+  const destination = getDestination();
   const events = new EventEmitter();
   const script = {
-    plugins: {
-      "save-stats": {
-        destination,
+    config: {
+      plugins: {
+        "save-stats": {
+          destination,
+        },
       },
     },
     scenarios: [],
   };
   const statsData = {
-    timestamp: "2021-02-12T17:17:35.906Z",
+    timestamp: new Date().toISOString(),
     summaries: {
       "engine.http.response_time": {
         min: 2,
@@ -56,53 +67,62 @@ test("artillery 'stats' event", (t) => {
     },
   };
 
-  new SaveStats(script, events);
+  const p = new SaveStats.Plugin(script, events);
 
   events.emit("stats", {
     report: () => statsData,
   });
 
-  fs.readFile(destination, (_, data) => {
-    cleanUp(destination);
+  events.emit("done");
 
-    t.equal(
-      data.toString(),
-      `${JSON.stringify(statsData)}\n`,
-      "writes data to file"
-    );
-    t.end();
+  p.cleanup(() => {
+    fs.readFile(destination, (_, data) => {
+      cleanUp(destination);
+
+      t.equal(
+        data.toString(),
+        `${JSON.stringify(statsData)}\n`,
+        "writes data to file"
+      );
+      t.end();
+    });
   });
 });
 
 test("plugin options", (t) => {
-  const destination = "./test/output";
+  const destination = getDestination();
   const events = new EventEmitter();
   const script = {
-    plugins: {
-      "save-stats": {
-        destination,
-        append: true,
+    config: {
+      plugins: {
+        "save-stats": {
+          destination,
+          append: true,
+        },
       },
     },
     scenarios: [],
   };
-  const statsData = {
-    timestamp: "2021-02-12T17:17:35.906Z",
-  };
-
-  fs.writeFileSync(destination, JSON.stringify(destination) + "\n");
-
-  new SaveStats(script, events);
-
-  events.emit("stats", {
-    report: () => statsData,
+  const statsData = () => ({
+    timestamp: new Date().toISOString(),
   });
 
-  fs.readFile(destination, (_, data) => {
-    cleanUp(destination);
+  fs.writeFileSync(destination, JSON.stringify(statsData()) + "\n");
 
-    const lines = data.toString().trim().split("\n");
-    t.equal(lines.length, 2, "can append lines to an existing file");
-    t.end();
+  const p = new SaveStats.Plugin(script, events);
+
+  events.emit("stats", {
+    report: () => statsData(),
+  });
+  events.emit("done");
+
+  p.cleanup(() => {
+    fs.readFile(destination, (_, data) => {
+      cleanUp(destination);
+
+      const lines = data.toString().trim().split("\n");
+      t.equal(lines.length, 2, "can append lines to an existing file");
+      t.end();
+    });
   });
 });
